@@ -30,24 +30,48 @@ jobs:
          tags: monalisasdi/monalisafrontend
 
     
-  cd:
-    name: Continuous deployment
-    runs-on: ubuntu-latest
-    needs: [ci]
-    env:
-      # These secrets allow Terraform to connect to scaleway account
-      # Keep it as it is
-      SCW_ACCESS_KEY: ${{ secrets.SCALEWAY_ACCESS_KEY }}
-      SCW_SECRET_KEY: ${{ secrets.SCALEWAY_SECRET_KEY }}
-      AWS_ACCESS_KEY: ${{ secrets.SCALEWAY_ACCESS_KEY }}
-      AWS_SECRET_KEY: ${{ secrets.SCALEWAY_SECRET_KEY }}
-    steps:
-      - uses: actions/checkout@v3
-      ##==> Make a terraform apply from your terraform folder
+ cd:
+   name: Continuous deployment
+   runs-on: ubuntu-latest
+   needs: [ci]
+   env:
+     # These secrets allow Terraform to connect to scaleway account
+     # Keep it as it is
+     SCW_ACCESS_KEY: ${{ secrets.SCALEWAY_ACCESS_KEY }}
+     SCW_SECRET_KEY: ${{ secrets.SCALEWAY_SECRET_KEY }}
+     AWS_ACCESS_KEY: ${{ secrets.SCALEWAY_ACCESS_KEY }}
+     AWS_SECRET_KEY: ${{ secrets.SCALEWAY_SECRET_KEY }}
+   steps:
+     - uses: actions/checkout@v3
 
-      # This step will get kube.config generated file from terraform apply
-      # and will set it up to be able te perform kubectl apply  
-      - name: Setup Kubeconfig
-        run: mkdir -p $HOME/.kube && mv terraform/kube.config $HOME/.kube/config
-      
-      ##==> Apply your kubernetes manifests
+     ##==> Make a terraform apply from your terraform folder
+     - name: Setup Terraform
+       uses: hashicorp/setup-terraform@v2
+
+     - run: |
+         cd ./terraform
+         terraform init
+         terraform apply -auto-approve
+
+     # This step will get kube.config generated file from terraform apply
+     # and will set it up to be able te perform kubectl apply
+     - uses: azure/setup-kubectl@v3
+       id: install
+
+     - name: Setup Kubeconfig
+       run: mkdir -p $HOME/.kube && mv terraform/kube.config $HOME/.kube/config
+
+     - name: Apply Kubernetes manifests
+       run: |
+         kubectl apply -f ./kubernetes/back-deployment.yml
+         kubectl apply -f ./kubernetes/front-deployment.yml
+
+     - name: Deploy frontend deployment
+       run: kubectl apply -f kubernetes/back-deployment.yml
+     - name: Deploy backend service
+       run: kubectl apply -f kubernetes/back-service.yml
+     - name: Deploy frontend deployment
+       run: kubectl apply -f kubernetes/front-deployment.yml
+     - name: Deploy frontend service
+       run: kubectl apply -f kubernetes/front-service.yml
+     ##==> Apply your kubernetes manifests
