@@ -55,7 +55,7 @@ jobs:
           terraform apply -auto-approve
 
       # This step will get kube.config generated file from terraform apply
-      # and will set it up to be able te perform kubectl apply
+      # and will set it up to be able te perform kubectl ap
       - uses: azure/setup-kubectl@v3
         id: install
 
