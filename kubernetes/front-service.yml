@@ -1,1 +1,15 @@
 ##==> Fill this frontend service manifest
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  labels:
+    app: frontend
+spec:
+  selector:
+    app: frontend
+  ports:
+    - name: http
+      port: 5000
+      targetPort: 3000
+  type: LoadBalancer

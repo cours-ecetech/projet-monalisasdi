@@ -1,35 +1,36 @@
+name: Full pipeline
+
 on:
   push:
     branches: [ "main" ]
 
 jobs:
   ci:
-   name: Continuous integration
-   runs-on: ubuntu-latest
-   steps:
-     - uses: actions/checkout@v3
+    name: Continuous integration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
 
-     - name: login to Docker Hub
-       uses: docker/login-action@v2
-       with:
-        username: ${{secrets.DOCKER_USERNAME}}
-        password: ${{secrets.DOCKER_PASSWORD}}
+      - name: login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+         username: ${{secrets.DOCKER_USERNAME}}
+         password: ${{secrets.DOCKER_PASSWORD}}
 
-     - name: Build and push backend Docker image
-       uses: docker/build-push-action@v2
-       with:
-         context: ./app/back
-         push: true
-         tags: monalisasdi/monalisabackend
+      - name: Build and push backend Docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: ./app/back
+          push: true
+          tags: monalisasdi/monalisabackend
 
-     - name: Build and push frontend Docker image
-       uses: docker/build-push-action@v2
-       with:
-         context: ./app/front
-         push: true
-         tags: monalisasdi/monalisafrontend
-    
- 
+      - name: Build and push frontend Docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: ./app/front
+          push: true
+          tags: monalisasdi/monalisafrontend
+
   cd:
     name: Continuous deployment
     runs-on: ubuntu-latest
@@ -60,11 +61,6 @@ jobs:
 
       - name: Setup Kubeconfig
         run: mkdir -p $HOME/.kube && mv terraform/kube.config $HOME/.kube/config
-
-      - name: Apply Kubernetes manifests
-        run: |
-          kubectl apply -f ./kubernetes/back-deployment.yml
-          kubectl apply -f ./kubernetes/front-deployment.yml
 
       - name: Deploy frontend deployment
         run: kubectl apply -f kubernetes/back-deployment.yml
