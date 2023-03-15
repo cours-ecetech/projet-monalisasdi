@@ -31,45 +31,23 @@ jobs:
 
     
   cd:
-  name: Continuous deployment
-  runs-on: ubuntu-latest
-  needs: [ci]
-  env:
-    SCW_ACCESS_KEY: ${{ secrets.SCALEWAY_ACCESS_KEY }}
-    SCW_SECRET_KEY: ${{ secrets.SCALEWAY_SECRET_KEY }}
-    AWS_ACCESS_KEY: ${{ secrets.SCALEWAY_ACCESS_KEY }}
-    AWS_SECRET_KEY: ${{ secrets.SCALEWAY_SECRET_KEY }}
-  steps:
-    - uses: actions/checkout@v3
+    name: Continuous deployment
+    runs-on: ubuntu-latest
+    needs: [ci]
+    env:
+      # These secrets allow Terraform to connect to scaleway account
+      # Keep it as it is
+      SCW_ACCESS_KEY: ${{ secrets.SCALEWAY_ACCESS_KEY }}
+      SCW_SECRET_KEY: ${{ secrets.SCALEWAY_SECRET_KEY }}
+      AWS_ACCESS_KEY: ${{ secrets.SCALEWAY_ACCESS_KEY }}
+      AWS_SECRET_KEY: ${{ secrets.SCALEWAY_SECRET_KEY }}
+    steps:
+      - uses: actions/checkout@v3
+      ##==> Make a terraform apply from your terraform folder
 
-    # Configuration de Terraform pour le déploiement de l'infrastructure
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v1
-      with:
-        terraform_version: 1.1.0
-
-    # Initialisation de Terraform
-    - name: Terraform Init
-      run: terraform init terraform
-
-    # Planification des changements à effectuer sur l'infrastructure
-    - name: Terraform Plan
-      id: plan
-      run: terraform plan -detailed-exitcode terraform
-
-    # Si le plan contient des changements, on les applique
-    - name: Terraform Apply
-      if: steps.plan.outputs.exitcode == 2
-      run: terraform apply -auto-approve terraform
-
-    # Cette étape récupère le fichier kubeconfig généré par Terraform
-    # et le configure pour permettre les commandes kubectl
-    - name: Setup Kubeconfig
-      run: |
-        mkdir -p $HOME/.kube
-        terraform output kube_config > $HOME/.kube/config
-        kubectl config use-context default
-
-    # Cette étape déploie les manifests Kubernetes
-    - name: Apply Kubernetes manifests
-      run: kubectl apply -f path/to/kubernetes/manifests
+      # This step will get kube.config generated file from terraform apply
+      # and will set it up to be able te perform kubectl apply  
+      - name: Setup Kubeconfig
+        run: mkdir -p $HOME/.kube && mv terraform/kube.config $HOME/.kube/config
+      
+      ##==> Apply your kubernetes manifests
