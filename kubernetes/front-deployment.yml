@@ -1,1 +1,23 @@
 ##==> Fill this frontend deployment manifest
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  selector:
+    matchLabels:
+      app: frontend
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: monalisasdi/monalisafrontend:latest
+        ports:
+          - containerPort: 3000
+        env:
+          - name: API_SERVICE_URL
+            value: http//backend:3000
