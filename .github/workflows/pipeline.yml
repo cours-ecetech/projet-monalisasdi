@@ -1,73 +1,73 @@
 name: Full pipeline
 
 on:
-  push:
-    branches: [ "main" ]
+ push:
+   branches: [ "main" ]
 
 jobs:
-  ci:
-    name: Continuous integration
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
+ ci:
+   name: Continuous integration
+   runs-on: ubuntu-latest
+   steps:
+     - uses: actions/checkout@v3
 
-      - name: login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-         username: ${{secrets.DOCKER_USERNAME}}
-         password: ${{secrets.DOCKER_PASSWORD}}
+     - name: login to Docker Hub
+       uses: docker/login-action@v2
+       with:
+        username: ${{secrets.DOCKER_USERNAME}}
+        password: ${{secrets.DOCKER_PASSWORD}}
 
-      - name: Build and push backend Docker image
-        uses: docker/build-push-action@v2
-        with:
-          context: ./app/back
-          push: true
-          tags: monalisasdi/monalisabackend
+     - name: Build and push backend Docker image
+       uses: docker/build-push-action@v2
+       with:
+         context: ./app/back
+         push: true
+         tags: staline/backenddd
 
-      - name: Build and push frontend Docker image
-        uses: docker/build-push-action@v2
-        with:
-          context: ./app/front
-          push: true
-          tags: monalisasdi/monalisafrontend
+     - name: Build and push frontend Docker image
+       uses: docker/build-push-action@v2
+       with:
+         context: ./app/front
+         push: true
+         tags: staline/frontenddd
 
-  cd:
-    name: Continuous deployment
-    runs-on: ubuntu-latest
-    needs: [ci]
-    env:
-      # These secrets allow Terraform to connect to scaleway account
-      # Keep it as it is
-      SCW_ACCESS_KEY: ${{ secrets.SCALEWAY_ACCESS_KEY }}
-      SCW_SECRET_KEY: ${{ secrets.SCALEWAY_SECRET_KEY }}
-      AWS_ACCESS_KEY: ${{ secrets.SCALEWAY_ACCESS_KEY }}
-      AWS_SECRET_KEY: ${{ secrets.SCALEWAY_SECRET_KEY }}
-    steps:
-      - uses: actions/checkout@v3
+ cd:
+   name: Continuous deployment
+   runs-on: ubuntu-latest
+   needs: [ci]
+   env:
+     # These secrets allow Terraform to connect to scaleway account
+     # Keep it as it is
+     SCW_ACCESS_KEY: ${{ secrets.SCALEWAY_ACCESS_KEY }}
+     SCW_SECRET_KEY: ${{ secrets.SCALEWAY_SECRET_KEY }}
+     AWS_ACCESS_KEY: ${{ secrets.SCALEWAY_ACCESS_KEY }}
+     AWS_SECRET_KEY: ${{ secrets.SCALEWAY_SECRET_KEY }}
+   steps:
+     - uses: actions/checkout@v3
 
-      ##==> Make a terraform apply from your terraform folder
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+     ##==> Make a terraform apply from your terraform folder
+     - name: Setup Terraform
+       uses: hashicorp/setup-terraform@v2
 
-      - run: |
-          cd ./terraform
-          terraform init
-          terraform apply -auto-approve
+     - run: |
+         cd ./terraform
+         terraform init
+         terraform apply -auto-approve
 
-      # This step will get kube.config generated file from terraform apply
-      # and will set it up to be able te perform kubectl ap
-      - uses: azure/setup-kubectl@v3
-        id: install
+     # This step will get kube.config generated file from terraform apply
+     # and will set it up to be able te perform kubectl apply
+     - uses: azure/setup-kubectl@v3
+       id: install
 
-      - name: Setup Kubeconfig
-        run: mkdir -p $HOME/.kube && mv terraform/kube.config $HOME/.kube/config
+     - name: Setup Kubeconfig
+       run: mkdir -p $HOME/.kube && mv terraform/kube.config $HOME/.kube/config
 
-      - name: Deploy frontend deployment
-        run: kubectl apply -f kubernetes/back-deployment.yml
-      - name: Deploy backend service
-        run: kubectl apply -f kubernetes/back-service.yml
-      - name: Deploy frontend deployment
-        run: kubectl apply -f kubernetes/front-deployment.yml
-      - name: Deploy frontend service
-        run: kubectl apply -f kubernetes/front-service.yml
-      ##==> Apply your kubernetes manifests
+     - name: Deploy frontend deployment
+       run: kubectl apply -f kubernetes/back-deployment.yml
+     - name: Deploy backend service
+       run: kubectl apply -f kubernetes/back-service.yml
+     - name: Deploy frontend deployment
+       run: kubectl apply -f kubernetes/front-deployment.yml
+     - name: Deploy frontend service
+       run: kubectl apply -f kubernetes/front-service.yml
+     ##==> Apply your kubernetes manifests
